@@ -1,7 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
+  const navigate = useNavigate();
   const [state, setState] = useState("Sign Up");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -9,6 +13,44 @@ const Login = () => {
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      if (state === "Sign Up") {
+        // Registration
+        const response = await fetch('http://localhost:5000/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            role: 'customer' // default role for new registrations
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Registration failed');
+        }
+
+        // If registration successful, automatically log them in
+        setState("Login");
+        alert("Registration successful! Please login.");
+      } else {
+        // Login logic here (we can implement this later)
+        // For now, just show an alert
+        alert("Login functionality will be implemented soon!");
+      }
+    } catch (err) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -27,8 +69,9 @@ const Login = () => {
             <input
               className="border border-zinc-300 rounded w-full p-2 mt-1"
               type="text"
-              onChange={(e) => setName(e.target.name)}
+              onChange={(e) => setName(e.target.value)}
               value={name}
+              required
             />
           </div>
         )}
@@ -38,8 +81,9 @@ const Login = () => {
           <input
             className="border border-zinc-300 rounded w-full p-2 mt-1"
             type="email"
-            onChange={(e) => setEmail(e.target.name)}
+            onChange={(e) => setEmail(e.target.value)}
             value={email}
+            required
           />
         </div>
 
@@ -48,12 +92,21 @@ const Login = () => {
           <input
             className="border border-zinc-300 rounded w-full p-2 mt-1"
             type="password"
-            onChange={(e) => setPassword(e.target.name)}
+            onChange={(e) => setPassword(e.target.value)}
             value={password}
+            required
+            minLength={6}
           />
         </div>
-        <button className="bg-blue-800 text-white w-full py-2 rounded-md text-base">
-          {state === "Sign Up" ? "Create Account" : "Login"}
+        {error && (
+          <p className="text-red-500 text-sm w-full">{error}</p>
+        )}
+        <button 
+          onClick={onSubmitHandler}
+          disabled={loading}
+          className={`bg-blue-800 text-white w-full py-2 rounded-md text-base ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+        >
+          {loading ? 'Please wait...' : (state === "Sign Up" ? "Create Account" : "Login")}
         </button>
         {state === "Sign Up" ? (
           <p>
