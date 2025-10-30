@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { auth: { loginUser } } = useContext(AppContext);
   const [state, setState] = useState("Sign Up");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,13 +40,32 @@ const Login = () => {
           throw new Error(data.message || 'Registration failed');
         }
 
-        // If registration successful, automatically log them in
-        setState("Login");
-        alert("Registration successful! Please login.");
+        // If registration successful, log them in via context and redirect
+        if (data.token && data.user) {
+          loginUser(data.user, data.token);
+          navigate('/');
+        } else {
+          setState("Login");
+        }
       } else {
-        // Login logic here (we can implement this later)
-        // For now, just show an alert
-        alert("Login functionality will be implemented soon!");
+        // Login
+        const response = await fetch('http://localhost:5000/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Login failed');
+        }
+
+        // store token and user in context/localStorage and redirect
+        if (data.token && data.user) {
+          loginUser(data.user, data.token);
+          navigate('/');
+        }
       }
     } catch (err) {
       setError(err.message || 'Something went wrong');
@@ -54,7 +75,7 @@ const Login = () => {
   };
 
   return (
-    <form className="min-h-[80vh] flex items-center">
+    <form onSubmit={onSubmitHandler} className="min-h-[80vh] flex items-center">
       <div className="flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-x1 text-zinc-600 text-sm shadow-lg">
         <p className="text-2xl font-semibold">
           {state === "Sign Up" ? "Create Account" : "Login"}
@@ -102,7 +123,7 @@ const Login = () => {
           <p className="text-red-500 text-sm w-full">{error}</p>
         )}
         <button 
-          onClick={onSubmitHandler}
+          type="submit"
           disabled={loading}
           className={`bg-blue-800 text-white w-full py-2 rounded-md text-base ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
         >

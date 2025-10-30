@@ -1,31 +1,67 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { assets } from '../assets/assets'
+import { AppContext } from '../context/AppContext'
 
 const MyProfile = () => {
 
-  const [userData, setUserData] = useState({
-    name: "Edward Vincent", 
-    image:assets.profile_pic,
-    email: 'richardjamesswap@gmail.com',
-    phone: '+1 234 567 890',
-    address: {
-      line1:"57th Cross, Richmond",
-      line2:"Circle, Church Road, London"
-    },
-    gender: 'Male',
-    dob:'2000-01-20'
-  })
+  const { auth } = useContext(AppContext)
+  const [userData, setUserData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState('')
 
   const [isEdit,setIsEdit]=useState(false)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true)
+      setFetchError('')
+      try {
+        const token = auth?.token || localStorage.getItem('token')
+        if (!token) throw new Error('Not authenticated')
+
+        const res = await fetch('http://localhost:5000/api/customer/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          }
+        })
+
+        // If backend returns non-JSON (HTML error page, etc.) this will let us inspect it
+        const contentType = res.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          const text = await res.text()
+          console.error('Expected JSON but received:', text)
+          throw new Error('Server returned non-JSON response — check server logs (see console)')
+        }
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message || 'Failed to fetch profile')
+
+        // backend returns { success: true, data: user }
+        setUserData(data.data || data.user || null)
+      } catch (err) {
+        setFetchError(err.message || 'Error fetching profile')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [auth])
+
+  if (loading) return <p>Loading profile...</p>
+  if (fetchError) return <p className='text-red-500'>{fetchError}</p>
+  if (!userData) return <p>No profile data available.</p>
 
   return (
     <div className='max-w-lg flex flex-col gap-2 text-sm'>
         
-      <img className='w-36 rounded' src={userData.image} alt=""/>
+      <img className='w-36 rounded' src={userData.image || assets.profile_pic} alt=""/>
       {
         isEdit
-        ?<input className='bg-gray-50 text-3xl font-medium max-w-60 mt-4' type="text" value={userData.name} onChange={e =>setUserData(prev => ({...prev,name:e.target.value}))}/>
-        :<p className='font-medium text-3xl text-neutral-800 mt-4'>{userData.name}</p>
+        ? <input className='bg-gray-50 text-3xl font-medium max-w-60 mt-4' type="text" value={userData.name} onChange={e =>setUserData(prev => ({...prev,name:e.target.value}))}/>
+        : <p className='font-medium text-3xl text-neutral-800 mt-4'>{userData.name}</p>
       }
 
       <hr className='bg-zinc-400 h-[1px] border-none'/>
@@ -42,17 +78,17 @@ const MyProfile = () => {
       }
        <p className='font-medium'>Address</p>
        {
-        isEdit
-        ?<p>
-          <input className='bg-gray-50' onClick={(e)=> setUserData(prev => ({...prev,address: {...prev.address, line1: e.target.value}}))} value={userData.address.line1} type="text"/>
-          <br/>
-          <input className='bg-gray-50' onClick={(e)=> setUserData(prev => ({...prev,address: {...prev.address, line2: e.target.value}}))} value={userData.address.line2} type="text"/>
-        </p>
-        :<p className='text-gray-500'>
-          {userData.address.line1}
-          <br/>
-          {userData.address.line2}
-        </p>
+       isEdit
+       ?<p>
+         <input className='bg-gray-50' onChange={(e)=> setUserData(prev => ({...prev,address: {...prev.address, line1: e.target.value}}))} value={userData.address?.line1 || ''} type="text"/>
+         <br/>
+         <input className='bg-gray-50' onChange={(e)=> setUserData(prev => ({...prev,address: {...prev.address, line2: e.target.value}}))} value={userData.address?.line2 || ''} type="text"/>
+       </p>
+       :<p className='text-gray-500'>
+         {userData.address?.line1}
+         <br/>
+         {userData.address?.line2}
+       </p>
        }
         </div>
       </div>
