@@ -17,7 +17,7 @@ const Navbar = () => {
                 <hr className='border-none outline-none h-0.5 bg-blue-800 w-3/5 m-auto hidden' />
             </NavLink>
             <NavLink to='/doctors'>
-                <li className='py-1'>ALL DOCTORS</li>
+                <li className='py-1'>ALL TECHNICIANS</li>
                 <hr className='border-none outline-none h-0.5 bg-blue-800 w-3/5 m-auto hidden' />
             </NavLink>
             <NavLink to='/about'>
