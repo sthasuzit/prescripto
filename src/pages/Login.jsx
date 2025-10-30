@@ -5,7 +5,8 @@ import { AppContext } from "../context/AppContext";
 const Login = () => {
   const navigate = useNavigate();
   const { auth: { loginUser } } = useContext(AppContext);
-  const [state, setState] = useState("Sign Up");
+  // default to Login so navigating to /login shows the login form
+  const [state, setState] = useState("Login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
